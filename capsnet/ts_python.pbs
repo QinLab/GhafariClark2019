@@ -1,0 +1,54 @@
+
+#! /bin/bash
+#$ -S /bin/bash
+
+# Replace rst1 with the name of the case you're running. Do this below
+# too where the std{out,err} files are defined.
+#$ -N Caps
+#$ -V
+
+# Here, replace <NPHYSICALNODES> with the number of compute nodes you want to
+# run the job on.
+#$ -pe namd 1
+
+#$ -cwd
+#$ -e caps.stderr
+#$ -o caps.stdout
+
+
+#. /etc/profile.d/modules.sh
+#module load shared
+module load cuda92/toolkit/9.2.88
+module load anaconda
+source activate dnet 
+python
+
+
+
+
+echo "###########################################################################"
+#echo " pe_hostfile: $PE_HOSTFILE"
+#cat $PE_HOSTFILE
+echo " CapsuleNet $  machines"
+echo " Custom namd machines file:"
+cat $TMPDIR/namd-machines
+echo "###########################################################################"
+
+# This line represents how many total threads you want to run; this should be
+# equal to 1 multiplied by 27. (There are 28 cores per compute
+# node, but one core per node needs to be set aside for communication.
+TOTALNTHREADS=27
+
+# This sets the number of threads per process; as I understand it currently,
+# this should always be 27 when running multi-node SMP jobs with a single
+# process per physical node (again, reserving one thread for communication).
+THREADSPERPROCESS=27
+
+# Don't forget to replace <INPUTFILE> with the name of your namd parameter file.
+cmd="charmrun ++remote-shell ssh ++p $TOTALNTHREADS ++ppn $THREADSPERPROCESS ++verbose `which caps1` ++nodelist $TMPDIR/namd-machines +idlepoll +setcpuaffinity capsulenet.py > caps1.log"
+
+echo "Starting CapsNet case on `date`"
+$cmd
+echo "CapsNet case complete on `date`"
+
+
